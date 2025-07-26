@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VLAN管理</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>VLAN管理</h1>
+        <div>
+            <label for="vlan_id">VLAN ID：</label>
+            <input type="text" id="vlan_id" name="vlan_id">
+        </div>
+        <div>
+            <label for="vm_name">虚拟机名称：</label>
+            <input type="text" id="vm_name" name="vm_name">
+        </div>
+        <div>
+            <button onclick="createVLAN()">创建VLAN</button>
+            <button onclick="delete_VM_VLAN()">删除VM</button>
+            <button onclick="delete_VLAN()">删除VLAN</button>
+{#            deleteVM_VLAN()">删除VLAN</button>#}
+        </div>
+        <div class="message" id="message"></div>
+        <!-- 显示已有的VLAN -->
+        <h2>已有的VLAN：</h2>
+        <ul id="vlanList"><!-- 这里将会动态添加已有的VLAN --></ul>
+        <h2>将虚拟机接口加入VLAN</h2>
+        <h3>虚拟机状态：</h3>
+{#        <button onclick="checkVMStatus()">查看虚拟机状态</button>#}
+        <div class="message" id="message_last"></div>
+        <div>
+{#            <label for="vm_name">虚拟机名称：</label>#}
+{#            <input type="text" id="vm_name" name="vm_name">#}
+            <label for="vm_name1">虚拟机名称：</label>
+            <input type="text" id="vm_name1" name="vm_name1">
+        </div>
+        <div>
+            <label for="vlan_id1">VLAN ID：</label>
+            <input type="text" id="vlan_id1" name="vlan_id1">
+        </div>
+{#        <div>#}
+{#            <label for="bridge_name1">桥接名称：</label>#}
+{#            <input type="text" id="bridge_name1" name="bridge_name1">#}
+{#        </div>#}
+        <div>
+            <button onclick="addVmToVLAN()">VM添加到VLAN</button>
+        </div>
+        <div class="message" id="vm_message1"></div>
+    </div>
+
+    <script>
+        function createVLAN() {
+            var vlanId = document.getElementById("vlan_id").value;
+            {#var bridgeName = document.getElementById("bridge_name").value;#}
+            var messageElem = document.getElementById("message");
+
+            fetch('/api/add_vlan', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    vlan_id: vlanId,
+                    {#name: bridgeName#}
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                messageElem.innerHTML = data.message;
+                loadVlans(); // Refresh VLAN list
+            })
+            .catch(error => {
+                messageElem.innerHTML = '发生错误';
+                console.error('错误：', error);
+            });
+        }
+        function delete_VLAN() {
+            var vlanId = document.getElementById("vlan_id").value;
+            {#var bridgeName = document.getElementById("bridge_name").value;#}
+            {#var vm_name = document.getElementById("vm_name").value;#}
+            var messageElem = document.getElementById("message");
+
+            fetch('/api/delete_vlan', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    vlan_id: vlanId,
+                    {#vm_name:vm_name#}
+                    {#name: bridgeName#}
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                messageElem.innerHTML = data.message;
+                loadVlans(); // Refresh VLAN list
+            })
+            .catch(error => {
+                messageElem.innerHTML = '发生错误';
+                console.error('错误：', error);
+            });
+
+        }
+
+        function delete_VM_VLAN() {
+            var vlanId = document.getElementById("vlan_id").value;
+            {#var bridgeName = document.getElementById("bridge_name").value;#}
+            var vm_name = document.getElementById("vm_name").value;
+            var messageElem = document.getElementById("message");
+
+            fetch('/api/delete_vm_vlan', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    vlan_id: vlanId,
+                    vm_name:vm_name
+                    {#name: bridgeName#}
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                messageElem.innerHTML = data.message;
+                loadVlans(); // Refresh VLAN list
+            })
+            .catch(error => {
+                messageElem.innerHTML = '发生错误';
+                console.error('错误：', error);
+            });
+        }
+        function addVmToVLAN() {
+            var vmNAME = document.getElementById("vm_name1").value;
+            var vmMessageElem = document.getElementById("vm_message1");
+            var vlanId = document.getElementById("vlan_id1").value;
+            {#var bridgeName = document.getElementById("bridge_name1").value;#}
+
+            fetch('/api/add_vm_to_vlan', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    vm_name: vmNAME,
+                    {#bridge_name:bridgeName,#}
+                    vlan_id: vlanId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                vmMessageElem.innerHTML = data.message;
+                loadVlans();
+            })
+            .catch(error => {
+                vmMessageElem.innerHTML = '发生错误';
+                console.error('错误：', error);
+            });
+        }
+
+        function loadVlans() {
+            fetch('/api/get_all_vlans')
+            .then(response => response.json())
+            .then(data => {
+                const vlanList = document.getElementById("vlanList");
+                vlanList.innerHTML = '';
+                data.forEach(vlan => {
+                    const li = document.createElement("li");
+                    const a = document.createElement("a");
+                    a.href = `/vlan_details?vlan_id=${vlan.vlan_id}`;
+                    a.textContent = `VLAN ID: ${vlan.vlan_id}, 虚拟机端口: ${vlan.vms}`;
+                    li.appendChild(a);
+                    vlanList.appendChild(li);
+                });
+            })
+            .catch(error => {
+                console.error('错误：', error);
+            });
+        }
+        function checkVMStatus()
+        {
+            fetch('/api/compared', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.offline_vms) {
+                document.getElementById('message_last').innerHTML = `虚拟机 ${data.offline_vms.join(', ')} 已掉线`;
+            } else {
+                document.getElementById('message_last').innerHTML = '所有虚拟机正常连接';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+        }
+
+
+// 定时检查虚拟机状态，每隔500毫秒执行一次
+setInterval(checkVMStatus, 500);
+
+
+        // Load VLANs on page load
+        document.addEventListener('DOMContentLoaded', loadVlans);
+    </script>
+</body>
+</html>
